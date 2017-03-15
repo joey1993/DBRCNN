@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-**[This code belongs to the "Implementing a CNN for Text Classification in Tensorflow" blog post.](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)**
-
-It is slightly simplified implementation of Kim's [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882) paper in Tensorflow.
+# Double Bidirectional Recurrent Convolutional Neural Network for Chinese Relation Extraction
 
 ## Requirements
 
-- Python 3
-- Tensorflow > 0.12
+- Python 2
+- Tensorflow  0.12.1
 - Numpy
 
 ## Training
@@ -69,6 +66,4 @@ Replace the checkpoint dir with the output from the training. To use your own da
 
 - [Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1408.5882)
 - [A Sensitivity Analysis of (and Practitioners' Guide to) Convolutional Neural Networks for Sentence Classification](http://arxiv.org/abs/1510.03820)
-=======
-# DBRCNN
->>>>>>> e26be3fef5cd68d50e8ae7df86127c94638d5e2b
+
