@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from text_cnn import TextCNN
+from text_dbrcnn import TextDBRCNN
 from tensorflow.contrib import learn
 import csv
 from sklearn import metrics
@@ -50,7 +50,11 @@ if FLAGS.eval_train:
                                               categories=cfg["datasets"][dataset_name]["categories"],
                                               shuffle=cfg["datasets"][dataset_name]["shuffle"],
                                               random_state=cfg["datasets"][dataset_name]["random_state"])
+    elif dataset_name == "concept5_test":
+        datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
+                                                  cfg["datasets"][dataset_name]["target_data_file"]["path"])
     x_raw, y_test = data_helpers.load_data_labels(datasets)
+
     y_test = np.argmax(y_test, axis=1)
     print("Total number of test examples: {}".format(len(y_test)))
 else:
