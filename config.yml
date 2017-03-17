@@ -48,10 +48,10 @@ datasets:
     random_state: 42
   concept5:
     training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_p"
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_negativesampling"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p"
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_negativesampling"
       info: "Data source for the target data"
   localdata:
     # Load text files with categories as subfolder names.
