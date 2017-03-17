@@ -13,7 +13,7 @@ class TextDBRCNN(object):
 
         # Placeholders for input, output and dropout
         self.input_x = tf.placeholder(tf.int32, [None, sequence_length], name="input_x")
-        self.input_x_char = tf.placeholder(tf.int32, [None, sequence_length*char_length], name="input_x")
+        self.input_x_char = tf.placeholder(tf.int32, [None, sequence_length*char_length], name="input_x_char")
         self.input_position_1 = tf.placeholder(tf.int32, [None, sequence_length], name="input_position_1")
         self.input_position_2 = tf.placeholder(tf.int32, [None, sequence_length], name="input_position_2")
         self.input_y = tf.placeholder(tf.float32, [None, num_classes], name="input_y")
