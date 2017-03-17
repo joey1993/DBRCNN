@@ -12,6 +12,16 @@ word_embeddings:
     dimension: 100
     length: 400000
 
+char_embeddings:
+  # Two types of word embedding algorithm (word2vec and glove) are supported.
+  # Just set the default to empty string to disable the word embeddings
+  default: word2vec
+  word2vec:
+#    path: data/GoogleNews-vectors-negative300.bin
+    path: ../data/simplified_model_char2vec_format200
+    dimension: 200
+    binary: False
+
 datasets:
   # Support currently 3 datasets: mrpolarity, 20newsgroup and localdata
   default: concept5

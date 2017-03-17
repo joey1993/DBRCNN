@@ -14,11 +14,12 @@ import yaml
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
+tf.flags.DEFINE_float("dev_sample_percentage", .05, "Percentage of the training data to use for validation")
 
 # Model Hyperparameters
 tf.flags.DEFINE_boolean("enable_word_embeddings", True, "Enable/disable the word embedding (default: True)")
 tf.flags.DEFINE_integer("embedding_dim", 400, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("char_embedding_dim", 200, "Dimensionality of character embedding (default: 200)")
 tf.flags.DEFINE_integer("position_dim", 50, "Dimensionality of position embedding (default: 50)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 128, "Number of filters per filter size (default: 128)")
@@ -52,6 +53,12 @@ if FLAGS.enable_word_embeddings and cfg['word_embeddings']['default'] is not Non
 else:
     embedding_dimension = FLAGS.embedding_dim
 
+if FLAGS.enable_word_embeddings and cfg['char_embeddings']['default'] is not None:
+    char_embedding_name = cfg['char_embeddings']['default']
+    char_embedding_dimension = cfg['char_embeddings'][char_embedding_name]['dimension']
+else:
+    char_embedding_dimension = FLAGS.char_embedding_dim
+
 # Data Preparation
 # ==================================================
 
@@ -83,12 +90,29 @@ vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
 x = np.array(list(vocab_processor.fit_transform(x_text)))
 x_new = np.concatenate((datasets['index'],x), axis=1).astype(np.int) 
 
+max_word_length = 10
+x_char_text = list()
+for stnc in x_text:
+    words = stnc.split(' ')
+    stnc_length = len(words)
+    num_padding = max_document_length - stnc_length
+    for word in words:
+        x_char_text.append(' '.join(list(word)))
+    for i in range(num_padding):
+        x_char_text.append('')
+x_char_text = np.array(x_char_text)
+vocab_processor_char = learn.preprocessing.VocabularyProcessor(max_word_length)
+x_char = np.array(list(vocab_processor_char.fit_transform(x_char_text)))
+x_char_rehape = np.reshape(x_char,(-1,max_document_length*max_word_length))
+
+
 # Randomly shuffle data
 np.random.seed(10)
 shuffle_indices = np.random.permutation(np.arange(len(y)))
 x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
 x_new_shuffled = x_new[shuffle_indices]
+x_char_shuffled = x_char_rehape[shuffle_indices]
 #index_shuffled = datasets['index'][shuffle_indices]
 
 # Split train/test set
@@ -97,9 +121,11 @@ dev_sample_index = -1 * int(FLAGS.dev_sample_percentage * float(len(y)))
 x_train, x_dev = x_shuffled[:dev_sample_index], x_shuffled[dev_sample_index:]
 y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 x_new_train, x_new_dev = x_new_shuffled[:dev_sample_index], x_new_shuffled[dev_sample_index:]
+x_char_train, x_char_dev = x_char_shuffled[:dev_sample_index], x_char_shuffled[dev_sample_index:]
 #index_train, index_dev = index_shuffled[:dev_sample_index], index_shuffled[dev_sample_index:]
 print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
+print("Character size: {:d}".format(len(vocab_processor_char.vocabulary_)))
 
 
 # Training
@@ -113,10 +139,13 @@ with tf.Graph().as_default():
     with sess.as_default():
         dbrcnn = TextDBRCNN(
             sequence_length=x_train.shape[1],
+            char_length=max_word_length,
             num_classes=y_train.shape[1],
             vocab_size=len(vocab_processor.vocabulary_),
+            char_size=len(vocab_processor_char.vocabulary_),
             embedding_size=embedding_dimension,
             position_size=FLAGS.position_dim,
+            char_embedding_size=char_embedding_dimension,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
@@ -187,13 +216,26 @@ with tf.Graph().as_default():
                 print("glove file has been loaded\n")
             sess.run(dbrcnn.W.assign(initW))
 
-        def train_step(x_batch, y_batch, position_batch_1, position_batch_2):
+            vocabulary = vocab_processor_char.vocabulary_
+            initC = None
+            if char_embedding_name == 'word2vec':
+                # load embedding vectors from the word2vec
+                print("Load char_word2vec file {}".format(cfg['char_embeddings']['word2vec']['path']))
+                initC = data_helpers.load_embedding_vectors_word2vec(vocabulary,
+                                                                     cfg['char_embeddings']['word2vec']['path'],
+                                                                     cfg['char_embeddings']['word2vec']['binary'])
+                print("char_word2vec file has been loaded")
+
+            sess.run(dbrcnn.C.assign(initC))
+
+        def train_step(x_batch, y_batch, x_char_batch, position_batch_1, position_batch_2):
             """
             A single training step
             """
             feed_dict = {
               dbrcnn.input_x: x_batch,
               dbrcnn.input_y: y_batch,
+              dbrcnn.input_x_char: x_char_batch,
               dbrcnn.input_position_1: position_batch_1,
               dbrcnn.input_position_2: position_batch_2,
               dbrcnn.dropout_keep_prob: FLAGS.dropout_keep_prob
@@ -205,13 +247,14 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             train_summary_writer.add_summary(summaries, step)
 
-        def dev_step(x_batch, y_batch, position_batch_1, position_batch_2, writer=None):
+        def dev_step(x_batch, y_batch, x_char_batch, position_batch_1, position_batch_2, writer=None):
             """
             Evaluates model on a dev set
             """
             feed_dict = {
               dbrcnn.input_x: x_batch,
               dbrcnn.input_y: y_batch,
+              dbrcnn.input_x_char: x_char_batch,
               dbrcnn.input_position_1: position_batch_1,
               dbrcnn.input_position_2: position_batch_2,
               dbrcnn.dropout_keep_prob: 1.0
@@ -236,16 +279,17 @@ with tf.Graph().as_default():
 
         # Generate batches
         batches = data_helpers.batch_iter(
-            list(zip(x_new_train[:,2:], y_train, position(x_new_train[:,0]), position(x_new_train[:,1]))), FLAGS.batch_size, FLAGS.num_epochs)
+            list(zip(x_new_train[:,2:], y_train, x_char_train, position(x_new_train[:,0]), position(x_new_train[:,1]))), FLAGS.batch_size, FLAGS.num_epochs)
 
         # Training loop. For each batch...
         for batch in batches:
-            x_batch, y_batch, position_batch_1, position_batch_2 = zip(*batch)
-            train_step(x_batch, y_batch, position_batch_1, position_batch_2)
+            x_batch, y_batch, x_char_batch, position_batch_1, position_batch_2 = zip(*batch)
+            #x_char_batch = np.reshape(x_char_batch,(-1,max_document_length,max_word_length))
+            train_step(x_batch, y_batch, x_char_batch, position_batch_1, position_batch_2)
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_new_dev[:,2:], y_dev, position(x_new_dev[:,0]), position(x_new_dev[:,1]), writer=dev_summary_writer)
+                dev_step(x_new_dev[:,2:], y_dev, x_char_dev, position(x_new_dev[:,0]), position(x_new_dev[:,1]), writer=dev_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
