@@ -7,6 +7,11 @@ word_embeddings:
     path: ../data/simplified_model_word2vec_format400
     dimension: 400
     binary: False
+  word2vec_pos:
+#    path: data/GoogleNews-vectors-negative300.bin
+    path: ../data/simplified_pos_model_word2vec_format200
+    dimension: 200
+    binary: False
   glove:
     path: ../data/glove.6B.100d.txt
     dimension: 100
