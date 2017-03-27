@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from text_dbrcnn import TextDBRCNN
+from text_dbrcnn_pos import TextDBRCNN
 from tensorflow.contrib import learn
 import yaml
 
@@ -18,7 +18,7 @@ tf.flags.DEFINE_float("dev_sample_percentage", .05, "Percentage of the training 
 
 # Model Hyperparameters
 tf.flags.DEFINE_boolean("enable_word_embeddings", True, "Enable/disable the word embedding (default: True)")
-tf.flags.DEFINE_integer("embedding_dim", 400, "Dimensionality of character embedding (default: 128)")
+tf.flags.DEFINE_integer("embedding_dim", 400, "Dimensionality of word embedding (default: 128)")
 tf.flags.DEFINE_integer("char_embedding_dim", 200, "Dimensionality of character embedding (default: 200)")
 tf.flags.DEFINE_integer("position_dim", 50, "Dimensionality of position embedding (default: 50)")
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
@@ -81,14 +81,21 @@ elif dataset_name == "localdata":
 elif dataset_name == "concept5":
     datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
                                                   cfg["datasets"][dataset_name]["target_data_file"]["path"])
+    datasets_pos = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["pos_training_data_file"]["path"],
+                                                  cfg["datasets"][dataset_name]["pos_target_data_file"]["path"])
 
 x_text, y = data_helpers.load_data_labels(datasets)
+x_text_pos, y_pos = data_helpers.load_data_labels(datasets_pos)
 
 # Build vocabulary
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_processor = learn.preprocessing.VocabularyProcessor(max_document_length)
 x = np.array(list(vocab_processor.fit_transform(x_text)))
-x_new = np.concatenate((datasets['index'],x), axis=1).astype(np.int) 
+x_new = np.concatenate((datasets['index'],x), axis=1).astype(np.int)
+
+vocab_processor_pos = learn.preprocessing.VocabularyProcessor(max_document_length)
+x_pos = np.array(list(vocab_processor_pos.fit_transform(x_text_pos)))
+x_pos_new = np.concatenate((datasets['index'],x_pos), axis=1).astype(np.int)
 
 max_word_length = 10
 x_char_text = list()
@@ -113,6 +120,7 @@ x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
 x_new_shuffled = x_new[shuffle_indices]
 x_char_shuffled = x_char_rehape[shuffle_indices]
+x_pos_shuffled = x_pos_new[shuffle_indices]
 #index_shuffled = datasets['index'][shuffle_indices]
 
 # Split train/test set
@@ -123,7 +131,8 @@ y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 x_new_train, x_new_dev = x_new_shuffled[:dev_sample_index], x_new_shuffled[dev_sample_index:]
 x_char_train, x_char_dev = x_char_shuffled[:dev_sample_index], x_char_shuffled[dev_sample_index:]
 #index_train, index_dev = index_shuffled[:dev_sample_index], index_shuffled[dev_sample_index:]
-print("Vocabulary Size: {:d}".format(len(vocab_processor.vocabulary_)))
+x_pos_train, x_pos_dev = x_pos_shuffled[:dev_sample_index], x_pos_shuffled[dev_sample_index:]
+print("Vocabulary Size: {:d}".format(len(vocab_processor_pos.vocabulary_)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 print("Character size: {:d}".format(len(vocab_processor_char.vocabulary_)))
 
@@ -141,7 +150,8 @@ with tf.Graph().as_default():
             sequence_length=x_train.shape[1],
             char_length=max_word_length,
             num_classes=y_train.shape[1],
-            vocab_size=len(vocab_processor.vocabulary_),
+            # vocab_size=len(vocab_processor.vocabulary_),
+            vocab_size=len(vocab_processor_pos.vocabulary_),
             char_size=len(vocab_processor_char.vocabulary_),
             embedding_size=embedding_dimension,
             position_size=FLAGS.position_dim,
@@ -193,19 +203,21 @@ with tf.Graph().as_default():
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # Write vocabulary
-        vocab_processor.save(os.path.join(out_dir, "vocab"))
+        # vocab_processor.save(os.path.join(out_dir, "vocab"))
+        vocab_processor_pos.save(os.path.join(out_dir, "vocab"))
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
         if FLAGS.enable_word_embeddings and cfg['word_embeddings']['default'] is not None:
-            vocabulary = vocab_processor.vocabulary_
+            # vocabulary = vocab_processor.vocabulary_
+            vocabulary = vocab_processor_pos.vocabulary_
             initW = None
-            if embedding_name == 'word2vec':
+            if embedding_name == 'word2vec_pos':
                 # load embedding vectors from the word2vec
-                print("Load word2vec file {}".format(cfg['word_embeddings']['word2vec']['path']))
+                print("Load word2vec file {}".format(cfg['word_embeddings']['word2vec_pos']['path']))
                 initW = data_helpers.load_embedding_vectors_word2vec(vocabulary,
-                                                                     cfg['word_embeddings']['word2vec']['path'],
-                                                                     cfg['word_embeddings']['word2vec']['binary'])
+                                                                     cfg['word_embeddings']['word2vec_pos']['path'],
+                                                                     cfg['word_embeddings']['word2vec_pos']['binary'])
                 print("word2vec file has been loaded")
             elif embedding_name == 'glove':
                 # load embedding vectors from the glove
@@ -278,8 +290,10 @@ with tf.Graph().as_default():
             return np.array(p)
 
         # Generate batches
+        # batches = data_helpers.batch_iter(
+        #     list(zip(x_new_train[:,2:], y_train, x_char_train, position(x_new_train[:,0]), position(x_new_train[:,1]))), FLAGS.batch_size, FLAGS.num_epochs)
         batches = data_helpers.batch_iter(
-            list(zip(x_new_train[:,2:], y_train, x_char_train, position(x_new_train[:,0]), position(x_new_train[:,1]))), FLAGS.batch_size, FLAGS.num_epochs)
+            list(zip(x_pos_train[:,2:], y_train, x_char_train, position(x_pos_train[:,0]), position(x_pos_train[:,1]))), FLAGS.batch_size, FLAGS.num_epochs)
 
         # Training loop. For each batch...
         for batch in batches:
@@ -289,7 +303,8 @@ with tf.Graph().as_default():
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                dev_step(x_new_dev[:,2:], y_dev, x_char_dev, position(x_new_dev[:,0]), position(x_new_dev[:,1]), writer=dev_summary_writer)
+                # dev_step(x_new_dev[:,2:], y_dev, x_char_dev, position(x_new_dev[:,0]), position(x_new_dev[:,1]), writer=dev_summary_writer)
+                dev_step(x_pos_dev[:,2:], y_dev, x_char_dev, position(x_pos_dev[:,0]), position(x_pos_dev[:,1]), writer=dev_summary_writer)
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)

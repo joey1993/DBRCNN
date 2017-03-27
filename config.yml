@@ -1,7 +1,7 @@
 word_embeddings:
   # Two types of word embedding algorithm (word2vec and glove) are supported.
   # Just set the default to empty string to disable the word embeddings
-  default: word2vec
+  default: word2vec_pos
   word2vec:
 #    path: data/GoogleNews-vectors-negative300.bin
     path: ../data/simplified_model_word2vec_format400
@@ -53,10 +53,16 @@ datasets:
     random_state: 42
   concept5:
     training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_negativesampling"
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_p_s"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_negativesampling"
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p_s"
+      info: "Data source for the target data"
+    pos_training_data_file:
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_pos_p_s"
+      info: "Data source for the training data with POS tags"
+    pos_target_data_file:
+      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p_s"
       info: "Data source for the target data"
   concept5_test:
     training_data_file:
