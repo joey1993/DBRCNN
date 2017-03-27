@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from text_dbrcnn import TextDBRCNN
+from text_brcnn import TextDBRCNN
 from tensorflow.contrib import learn
 import yaml
 
