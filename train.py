@@ -9,6 +9,7 @@ import data_helpers
 from text_dbrcnn_pos import TextDBRCNN
 from tensorflow.contrib import learn
 import yaml
+from sklearn import metrics
 
 # Parameters
 # ==================================================
@@ -271,11 +272,17 @@ with tf.Graph().as_default():
               dbrcnn.input_position_2: position_batch_2,
               dbrcnn.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy],
+            step, summaries, loss, accuracy, y_pred, input_ys = sess.run(
+                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy, dbrcnn.predictions, dbrcnn.input_y],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+            y_true = np.argmax(input_ys,1)
+            print "Precision", metrics.precision_score(y_true, y_pred)
+            print "Recall", metrics.recall_score(y_true, y_pred)
+            print "f1_score", metrics.f1_score(y_true, y_pred)
+            print "confusion_matrix"
+            print metrics.confusion_matrix(y_true, y_pred)
             if writer:
                 writer.add_summary(summaries, step)
 
