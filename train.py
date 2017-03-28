@@ -278,9 +278,10 @@ with tf.Graph().as_default():
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             y_true = np.argmax(input_ys,1)
-            print "Precision", metrics.precision_score(y_true, y_pred)
-            print "Recall", metrics.recall_score(y_true, y_pred)
-            print "f1_score", metrics.f1_score(y_true, y_pred)
+
+            print "Precision", metrics.precision_score(y_true, y_pred, average='weighted')
+            print "Recall", metrics.recall_score(y_true, y_pred, average='weighted')
+            print "f1_score", metrics.f1_score(y_true, y_pred, average='weighted')
             print "confusion_matrix"
             print metrics.confusion_matrix(y_true, y_pred)
             if writer:
