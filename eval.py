@@ -22,6 +22,7 @@ with open("config.yml", 'r') as ymlfile:
 
 # Eval Parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("batch_size", 400, "Epoch Size (default: 200)")
 tf.flags.DEFINE_string("checkpoint_dir", "", "Checkpoint directory from training run")
 tf.flags.DEFINE_boolean("eval_train", False, "Evaluate on all training data")
 
@@ -59,6 +60,29 @@ if FLAGS.eval_train:
     x_text, y = data_helpers.load_data_labels(datasets)
     x_text_pos, y_pos = data_helpers.load_data_labels(datasets_pos)
 
+    l1 = [len(x.split(" ")) for x in x_text]
+    l2 = [len(x.split(" ")) for x in x_text_pos]
+    count = 0
+    wrong_stnc = []
+    for index in range(len(l1)):
+        if l1[index] == l2[index]:
+            count += 1
+        else:
+        wrong_stnc.append(index)
+        print x_text[index]
+        print x_text_pos[index]
+        print ''
+    print("Accuracy: {:g}".format(count/float(len(l1))))
+
+    length = len(wrong_stnc)
+    for i in range(length):
+        remove_index = wrong_stnc[length-i-1]
+        x_text = x_text[:remove_index] + x_text[remove_index+1:]
+        y = y[:remove_index] + y[remove_index+1:]
+        x_text_pos = x_text_pos[:remove_index] + x_text_pos[remove_index+1:]
+        y_pos = y_pos[:remove_index] + y_pos[[remove_index+1:]
+
+
     y_test = np.argmax(y, axis=1)
     print("Total number of test examples: {}".format(len(y_test)))
 else:
@@ -71,27 +95,6 @@ else:
         y_test = [2, 1]
 
 # Map data into vocabulary
-l1 = [len(x.split(" ")) for x in x_text]
-l2 = [len(x.split(" ")) for x in x_text_pos]
-count = 0
-wrong_stnc = []
-for index in range(len(l1)):
-    if l1[index] == l2[index]:
-        count += 1
-    else:
-	wrong_stnc.append(index)
-	print x_text[index]
-	print x_text_pos[index]
-	print ''
-print("Accuracy: {:g}".format(count/float(len(l1))))
-
-length = len(wrong_stnc)
-for i in range(length):
-    remove_index = wrong_stnc[length-i-1]
-    x_text = x_text[:remove_index] + x_text[remove_index+1:]
-    y = y[:remove_index] + y[remove_index+1:]
-    x_text_pos = x_text_pos[:remove_index] + x_text_pos[remove_index+1:]
-    y_pos = y_pos[:remove_index] + y_pos[[remove_index+1:]
 
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.pardir)), "vocab")
@@ -156,7 +159,7 @@ with graph.as_default():
 
         # Generate batches for one epoch
         batches = data_helpers.batch_iter(
-            list(zip(x_new_test[:,2:], x_char_test, position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, 200, shuffle=False)
+            list(zip(x_new_test[:,2:], x_char_test, position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, FLAGS.epoch_size, shuffle=False)
 
 
         # Generate batches for one epoch
