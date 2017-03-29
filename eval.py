@@ -40,7 +40,7 @@ print("")
 datasets = None
 
 # CHANGE THIS: Load data. Load your own data here
-dataset_name = cfg["datasets"]["default"]
+dataset_name = "concept5_test"
 if FLAGS.eval_train:
     if dataset_name == "mrpolarity":
         datasets = data_helpers.get_datasets_mrpolarity(cfg["datasets"][dataset_name]["positive_data_file"]["path"],

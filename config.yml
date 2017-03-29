@@ -71,7 +71,7 @@ datasets:
     target_data_file:
       path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target"
       info: "Data source for the target data"
-      pos_training_data_file:
+    pos_training_data_file:
       path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_pos"
       info: "Data source for the training data with POS tags"
     pos_target_data_file:
