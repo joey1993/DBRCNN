@@ -50,7 +50,7 @@ if FLAGS.eval_train:
                                               categories=cfg["datasets"][dataset_name]["categories"],
                                               shuffle=cfg["datasets"][dataset_name]["shuffle"],
                                               random_state=cfg["datasets"][dataset_name]["random_state"])
-    elif dataset_name == "concept5":
+    elif dataset_name == "concept5_test":
         datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
                                                   cfg["datasets"][dataset_name]["target_data_file"]["path"])
         datasets_pos = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["pos_training_data_file"]["path"],
@@ -71,6 +71,14 @@ else:
         y_test = [2, 1]
 
 # Map data into vocabulary
+l1 = [len(x.split(" ")) for x in x_text]
+l2 = [len(x.split(" ")) for x in x_text_pos]
+count = 0
+for index in range(len(l1)):
+    if l1[index] == l2[index]:
+        count += 1
+print("Accuracy: {:g}".format(count/float(len(l1))))
+
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.pardir)), "vocab")
 vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)

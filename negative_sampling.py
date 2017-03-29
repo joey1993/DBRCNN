@@ -9,9 +9,9 @@ def main():
 	shuffle_indices = set(np.random.permutation(np.arange(max_line))[:num_negtive])
 
 	index = 0
-	f = open('../data/chinese-relation_extraction/pre_brcnn_data_train_n','r')
-	h = open('../data/chinese-relation_extraction/pre_brcnn_data_train_p','r')
-	g = open('../data/chinese-relation_extraction/pre_brcnn_data_train_negativesampling','w')
+	f = open('../data/chinese-relation_extraction/pre_brcnn_data_train_pos_n','r')
+	h = open('../data/chinese-relation_extraction/stnc_simplified_POS','r')
+	g = open('../data/chinese-relation_extraction/pre_brcnn_data_train_pos_negativesampling','w')
 	line = f.readline()
 	while line != '':
 		if index in shuffle_indices:
@@ -29,7 +29,7 @@ def main():
 	index = 0
 	f = open('../data/chinese-relation_extraction/pre_brcnn_data_target_n','r')
 	h = open('../data/chinese-relation_extraction/pre_brcnn_data_target_p','r')
-	g = open('../data/chinese-relation_extraction/pre_brcnn_data_target_negativesampling','w')
+	g = open('../data/chinese-relation_extraction/pre_brcnn_data_target_pos_negativesampling','w')
 	line = f.readline()
 	while line != '':
 		if index in shuffle_indices:

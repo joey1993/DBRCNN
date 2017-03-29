@@ -53,23 +53,29 @@ datasets:
     random_state: 42
   concept5:
     training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_p_s"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p_s"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target"
       info: "Data source for the target data"
     pos_training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_pos_p_s"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_pos"
       info: "Data source for the training data with POS tags"
     pos_target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p_s"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target"
       info: "Data source for the target data"
   concept5_test:
     training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_p"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_p"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target"
+      info: "Data source for the target data"
+      pos_training_data_file:
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_pos"
+      info: "Data source for the training data with POS tags"
+    pos_target_data_file:
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target"
       info: "Data source for the target data"
   localdata:
     # Load text files with categories as subfolder names.
