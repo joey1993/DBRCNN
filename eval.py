@@ -74,10 +74,24 @@ else:
 l1 = [len(x.split(" ")) for x in x_text]
 l2 = [len(x.split(" ")) for x in x_text_pos]
 count = 0
+wrong_stnc = []
 for index in range(len(l1)):
     if l1[index] == l2[index]:
         count += 1
+    else:
+	wrong_stnc.append(index)
+	print x_text[index]
+	print x_text_pos[index]
+	print ''
 print("Accuracy: {:g}".format(count/float(len(l1))))
+
+length = len(wrong_stnc)
+for i in range(length):
+    remove_index = wrong_stnc[length-i-1]
+    x_text = x_text[:remove_index] + x_text[remove_index+1:]
+    y = y[:remove_index] + y[remove_index+1:]
+    x_text_pos = x_text_pos[:remove_index] + x_text_pos[remove_index+1:]
+    y_pos = y_pos[:remove_index] + y_pos[[remove_index+1:]
 
 max_document_length = max([len(x.split(" ")) for x in x_text])
 vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.pardir)), "vocab")
@@ -142,7 +156,7 @@ with graph.as_default():
 
         # Generate batches for one epoch
         batches = data_helpers.batch_iter(
-            list(zip(x_new_test[:,2:], x_char_test, position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, 1, shuffle=False)
+            list(zip(x_new_test[:,2:], x_char_test, position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, 200, shuffle=False)
 
 
         # Generate batches for one epoch
