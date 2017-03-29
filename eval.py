@@ -82,7 +82,6 @@ if FLAGS.eval_train:
         x_text_pos = x_text_pos[:remove_index] + x_text_pos[remove_index+1:]
         y_pos = y_pos[:remove_index] + y_pos[[remove_index+1:]
 
-
     y_test = np.argmax(y, axis=1)
     print("Total number of test examples: {}".format(len(y_test)))
 else:
@@ -101,7 +100,6 @@ vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.
 vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
 x_test = np.array(list(vocab_processor.transform(x_text_pos)))
 x_new_test = np.concatenate((datasets_pos['index'],x_test), axis=1).astype(np.int)
-
 
 max_word_length = 10
 x_char_text = list()
