@@ -9,12 +9,13 @@ import data_helpers
 from text_brcnn import TextDBRCNN
 from tensorflow.contrib import learn
 import yaml
+from sklearn import metrics
 
 # Parameters
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_float("dev_sample_percentage", .1, "Percentage of the training data to use for validation")
+tf.flags.DEFINE_float("dev_sample_percentage", .05, "Percentage of the training data to use for validation")
 
 # Model Hyperparameters
 tf.flags.DEFINE_boolean("enable_word_embeddings", True, "Enable/disable the word embedding (default: True)")
@@ -26,10 +27,10 @@ tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (defau
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 20, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 10, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 10, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("num_epochs", 10, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
@@ -74,7 +75,9 @@ elif dataset_name == "localdata":
 elif dataset_name == "concept5":
     datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
                                                   cfg["datasets"][dataset_name]["target_data_file"]["path"])
-
+elif dataset_name == "semeval2010_task8":
+    datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
+                                                  cfg["datasets"][dataset_name]["target_data_file"]["path"])
 x_text, y = data_helpers.load_data_labels(datasets)
 
 # Build vocabulary
@@ -185,6 +188,13 @@ with tf.Graph().as_default():
                                                                   cfg['word_embeddings']['glove']['path'],
                                                                   embedding_dimension)
                 print("glove file has been loaded\n")
+            elif embedding_name == 'word2vec_en':
+                # load embedding vectors from the word2vec
+                print("Load word2vec_en file {}".format(cfg['word_embeddings']['word2vec_en']['path']))
+                initW = data_helpers.load_embedding_vectors_word2vec(vocabulary,
+                                                                     cfg['word_embeddings']['word2vec_en']['path'],
+                                                                     cfg['word_embeddings']['word2vec_en']['binary'])
+                print("word2vec_en file has been loaded")
             sess.run(dbrcnn.W.assign(initW))
 
         def train_step(x_batch, y_batch, position_batch_1, position_batch_2):
@@ -216,13 +226,22 @@ with tf.Graph().as_default():
               dbrcnn.input_position_2: position_batch_2,
               dbrcnn.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy],
+            step, summaries, loss, accuracy, y_pred, input_ys = sess.run(
+                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy, dbrcnn.predictions, dbrcnn.input_y],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             if writer:
                 writer.add_summary(summaries, step)
+
+            y_true = np.argmax(input_ys,1)
+
+            #print "Precision", metrics.precision_score(y_true, y_pred, average='weighted')
+            #print "Recall", metrics.recall_score(y_true, y_pred, average='weighted')
+            #print "f1_score", metrics.f1_score(y_true, y_pred, average='weighted')
+            print metrics.classification_report(y_true, y_pred, target_names=datasets['target_names'])
+	    print "confusion_matrix"
+            print metrics.confusion_matrix(y_true, y_pred)
 
         def position(pos):
             max_length = x_train.shape[1]

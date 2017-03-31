@@ -1,7 +1,11 @@
 word_embeddings:
   # Two types of word embedding algorithm (word2vec and glove) are supported.
   # Just set the default to empty string to disable the word embeddings
-  default: word2vec
+  default: word2vec_en
+  word2vec_en:
+    path: ../data/GoogleNews-vectors-negative300.bin
+    dimension: 300
+    binary: True
   word2vec:
 #    path: data/GoogleNews-vectors-negative300.bin
     path: ../data/simplified_model_word2vec_format400
@@ -45,10 +49,10 @@ datasets:
       info: "Data source for the target data"
   semeval2010_task8:
     training_data_file:
-      path: "../data/semeval2010_task8/train_p"
+      path: "../data/semeval2010_task8/train_negativesampling"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/semeval2010_task8/train_target_p"
+      path: "../data/semeval2010_task8/train_target_negativesampling"
       info: "Data source for the target data"
   localdata:
     # Load text files with categories as subfolder names.
