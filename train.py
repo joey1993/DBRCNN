@@ -9,12 +9,13 @@ import data_helpers
 from text_dbrcnn import TextDBRCNN
 from tensorflow.contrib import learn
 import yaml
+from sklearn import metrics
 
 # Parameters
 # ==================================================
 
 # Data loading params
-tf.flags.DEFINE_float("dev_sample_percentage", .05, "Percentage of the training data to use for validation")
+tf.flags.DEFINE_float("dev_sample_percentage", .01, "Percentage of the training data to use for validation")
 
 # Model Hyperparameters
 tf.flags.DEFINE_boolean("enable_word_embeddings", True, "Enable/disable the word embedding (default: True)")
@@ -27,10 +28,10 @@ tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (defau
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularization lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 20, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 10, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 10, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("num_epochs", 1, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("evaluate_every", 30, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
@@ -259,12 +260,19 @@ with tf.Graph().as_default():
               dbrcnn.input_position_2: position_batch_2,
               dbrcnn.dropout_keep_prob: 1.0
             }
-            step, summaries, loss, accuracy = sess.run(
-                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy],
+            step, summaries, loss, accuracy, y_pred, input_ys = sess.run(
+                [global_step, dev_summary_op, dbrcnn.loss, dbrcnn.accuracy, dbrcnn.predictions, dbrcnn.input_y],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-            if writer:
+	
+	    y_true = np.argmax(input_ys,1)           
+            print "Precision", metrics.precision_score(y_true, y_pred, average='weighted')
+            print "Recall", metrics.recall_score(y_true, y_pred, average='weighted')
+            print "f1_score", metrics.f1_score(y_true, y_pred, average='weighted')
+            print "confusion_matrix"
+            print metrics.confusion_matrix(y_true, y_pred)
+	    if writer:
                 writer.add_summary(summaries, step)
 
         def position(pos):

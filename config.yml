@@ -53,10 +53,10 @@ datasets:
     random_state: 42
   concept5:
     training_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_train_negativesampling"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/pre_brcnn_data_target_negativesampling"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target"
       info: "Data source for the target data"
   concept5_test:
     training_data_file:
