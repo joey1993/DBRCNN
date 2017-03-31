@@ -53,26 +53,26 @@ datasets:
     random_state: 42
   concept5:
     training_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_new"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target_new"
       info: "Data source for the target data"
     pos_training_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_pos"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_pos_new"
       info: "Data source for the training data with POS tags"
     pos_target_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/train_target_new"
       info: "Data source for the target data"
   concept5_test:
     training_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_new"
       info: "Data source for the training data"
     target_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target_new"
       info: "Data source for the target data"
     pos_training_data_file:
-      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_pos"
+      path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_pos_new"
       info: "Data source for the training data with POS tags"
     pos_target_data_file:
       path: "../data/chinese-relation_extraction/experiment_data_dbrcnn_pos/test_target"
