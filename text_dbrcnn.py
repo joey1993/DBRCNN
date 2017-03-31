@@ -33,9 +33,11 @@ class TextDBRCNN(object):
             print self.embedded_chars_expanded.get_shape()
             self.embedded_chars_transpose = tf.transpose(self.embedded_chars,[1,0,2])
             self.embedded_chars_reshape = tf.reshape(self.embedded_chars_transpose,[-1,embedding_size])
-
+	print self.embedded_chars_reshape.get_shape()
         rnn_input = tf.split(0, sequence_length, self.embedded_chars_reshape)
-        #lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(embedding_size, forget_bias = 1.0)
+        print len(rnn_input)
+	print rnn_input[0]
+	#lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(embedding_size, forget_bias = 1.0)
         lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(embedding_size, forget_bias = 1.0)
         lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(embedding_size, forget_bias = 1.0)
         output, _, _ = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, rnn_input, dtype = tf.float32)
