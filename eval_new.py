@@ -6,7 +6,7 @@ import os
 import time
 import datetime
 import data_helpers
-from text_brcnn import TextDBRCNN
+from text_dbrcnn_pos import TextDBRCNN
 from tensorflow.contrib import learn
 import csv
 from sklearn import metrics
@@ -41,7 +41,7 @@ print("")
 datasets = None
 
 # CHANGE THIS: Load data. Load your own data here
-dataset_name = cfg["datasets"]["default"]
+dataset_name = "concept5_test"
 if FLAGS.eval_train:
     if dataset_name == "mrpolarity":
         datasets = data_helpers.get_datasets_mrpolarity(cfg["datasets"][dataset_name]["positive_data_file"]["path"],
@@ -51,49 +51,75 @@ if FLAGS.eval_train:
                                               categories=cfg["datasets"][dataset_name]["categories"],
                                               shuffle=cfg["datasets"][dataset_name]["shuffle"],
                                               random_state=cfg["datasets"][dataset_name]["random_state"])
-    elif dataset_name == "semeval2010_task8":
-        datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["testing_data_file"]["path"],
-                                                  cfg["datasets"][dataset_name]["testing_target_data_file"]["path"])
-    elif dataset_name == "concept5":
+    elif dataset_name == "concept5_test":
         datasets = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["training_data_file"]["path"],
                                                   cfg["datasets"][dataset_name]["target_data_file"]["path"])
+        datasets_pos = data_helpers.get_datasets_concept5(cfg["datasets"][dataset_name]["pos_training_data_file"]["path"],
+                                                  cfg["datasets"][dataset_name]["pos_target_data_file"]["path"])
 
-    x_text, y_test = data_helpers.load_data_labels(datasets)
-    y_test = np.argmax(y_test, axis=1)
+    x_text, y = data_helpers.load_data_labels(datasets)
+    x_text_pos, y_pos = data_helpers.load_data_labels(datasets_pos)
+
+    l1 = [len(x.split(" ")) for x in x_text]
+    l2 = [len(x.split(" ")) for x in x_text_pos]
+    count = 0
+    wrong_stnc = []
+    for index in range(len(l1)):
+        if l1[index] == l2[index]:
+            count += 1
+        else:
+            wrong_stnc.append(index)
+            print x_text[index]
+            print x_text_pos[index]
+            print ''
+    print("Accuracy: {:g}".format(count/float(len(l1))))
+
+    y_test = np.argmax(y, axis=1)
     print("Total number of test examples: {}".format(len(y_test)))
 else:
     if dataset_name == "mrpolarity":
-        x_raw = ["a masterpiece four years in the making", "everything is off."]
+        x_text = ["a masterpiece four years in the making", "everything is off."]
         y_test = [1, 0]
     else:
-        x_raw = ["The number of reported cases of gonorrhea in Colorado increased",
+        x_text = ["The number of reported cases of gonorrhea in Colorado increased",
                  "I am in the market for a 24-bit graphics card for a PC"]
         y_test = [2, 1]
 
 # Map data into vocabulary
-#max_document_length = max([len(x.split(" ")) for x in x_text])
-max_document_length = 96
-print "max_document_length:",max_document_length
-vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.pardir)), "vocab")
-#vocab_path = os.path.join(FLAGS.checkpoint_dir, "..", "vocab")
-vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
-x_test = np.array(list(vocab_processor.transform(x_text)))
-x_new_test = np.concatenate((datasets['index'],x_test), axis=1).astype(np.int)
 
+max_document_length = max([len(x.split(" ")) for x in x_text])
+vocab_path = os.path.join(os.path.abspath(os.path.join(FLAGS.checkpoint_dir, os.pardir)), "vocab")
+vocab_processor = learn.preprocessing.VocabularyProcessor.restore(vocab_path)
+x_test = np.array(list(vocab_processor.transform(x_text_pos)))
+x_new_test = np.concatenate((datasets_pos['index'],x_test), axis=1).astype(np.int)
+
+max_word_length = 10
+x_char_text = list()
+for stnc in x_text:
+    words = stnc.split(' ')
+    stnc_length = len(words)
+    num_padding = max_document_length - stnc_length
+    for word in words:
+        x_char_text.append(' '.join(list(word)))
+    for i in range(num_padding):
+        x_char_text.append('')
+x_char_text = np.array(x_char_text)
+vocab_processor_char = learn.preprocessing.VocabularyProcessor(max_word_length)
+x_char = np.array(list(vocab_processor_char.fit_transform(x_char_text)))
+x_char_test = np.reshape(x_char,(-1,max_document_length*max_word_length))
+
+
+print("\nEvaluating...\n")
 
 def position(pos):
     max_length = max_document_length
     p = []
-    print "pos:"
-    print len(pos)
     for j in range(len(pos)):
         position_array = np.zeros(max_length)
         for i in range(len(position_array)):
             position_array[i] = i - pos[j] + max_length - 1
         p.append(position_array)
     return np.array(p)
-
-print("\nEvaluating...\n")
 
 # Evaluation
 # ==================================================
@@ -111,6 +137,7 @@ with graph.as_default():
 
         # Get the placeholders from the graph by name
         input_x = graph.get_operation_by_name("input_x").outputs[0]
+        input_x_char = graph.get_operation_by_name("input_x_char").outputs[0]
         input_position_1 = graph.get_operation_by_name("input_position_1").outputs[0]
         input_position_2 = graph.get_operation_by_name("input_position_2").outputs[0]
         # input_y = graph.get_operation_by_name("input_y").outputs[0]
@@ -119,17 +146,23 @@ with graph.as_default():
         # Tensors we want to evaluate
         predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
+
         # Generate batches for one epoch
         batches = data_helpers.batch_iter(
-            list(zip(x_new_test[:,2:], position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, FLAGS.epoch_size, shuffle=False)
-        #batches = data_helpers.batch_iter(list(x_test), FLAGS.batch_size, 1, shuffle=False)
+            list(zip(x_new_test[:,2:], x_char_test, position(x_new_test[:,0]), position(x_new_test[:,1]))), FLAGS.batch_size, FLAGS.epoch_size, shuffle=False)
+
+
+        # Generate batches for one epoch
+        # batches = data_helpers.batch_iter(list(x_new), FLAGS.batch_size, 1, shuffle=False)
 
         # Collect the predictions here
         all_predictions = []
-	for batch in batches:
-            x_batch, position_batch_1, position_batch_2 = zip(*batch)
+
+        for batch in batches:
+            x_batch, x_char_batch, position_batch_1, position_batch_2 = zip(*batch)
             feed_dict = {
                 input_x: x_batch,
+                input_x_char: x_char_batch,
                 input_position_1: position_batch_1,
                 input_position_2: position_batch_2,
                 dropout_keep_prob: 1.0
@@ -137,16 +170,12 @@ with graph.as_default():
             batch_predictions = sess.run(predictions, feed_dict)
             all_predictions = np.concatenate([all_predictions, batch_predictions])
 
-        #for x_test_batch in batches:
-            #batch_predictions = sess.run(predictions, {input_x: x_test_batch, dropout_keep_prob: 1.0})
-            #all_predictions = np.concatenate([all_predictions, batch_predictions])
-
 # Print accuracy if y_test is defined
 if y_test is not None:
     correct_predictions = float(sum(all_predictions == y_test))
     print("Total number of test examples: {}".format(len(y_test)))
     print("Accuracy: {:g}".format(correct_predictions/float(len(y_test))))
-   # print(metrics.classification_report(y_test, all_predictions, target_names=datasets['target_names']))
+    print(metrics.classification_report(y_test, all_predictions, target_names=datasets['target_names']))
     print(metrics.confusion_matrix(y_test, all_predictions))
 
 # Save the evaluation to a csv

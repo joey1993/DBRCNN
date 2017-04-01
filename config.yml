@@ -54,6 +54,12 @@ datasets:
     target_data_file:
       path: "../data/semeval2010_task8/train_target_negativesampling"
       info: "Data source for the target data"
+    testing_data_file:
+      path: "../data/semeval2010_task8/test_p"
+      info: "Data source for the training data"
+    testing_target_data_file:
+      path: "../data/semeval2010_task8/test_target_p"
+      info: "Data source for the target data"
   localdata:
     # Load text files with categories as subfolder names.
     # Individual samples are assumed to be files stored
